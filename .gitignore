@@ -1,5 +1,43 @@
-.Rproj.user
+doc
+
+# Local project-specific files.
+ggsave-output.pdf
+Rplots.pdf
+
+# History files
 .Rhistory
-.Rdata
+.Rapp.history
+
+# Session Data files
+.RData
+
+# Example code in package build process
+*-Ex.R
+
+# Output files from R CMD build
+/*.tar.gz
+
+# Output files from R CMD check
+/*.Rcheck/
+
+# RStudio files
+.Rproj.user/
+
+# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
+
+# knitr and Rmarkdown default cache directories
+/*_cache/
+/cache/
+
+# Temporary files created by Rmarkdown
+*.utf8.md
+*.knit.md
+/vignettes/*.html
+
+# Local files
+Meta
+.Rlibrary
+
+# macOS system files
 .DS_Store

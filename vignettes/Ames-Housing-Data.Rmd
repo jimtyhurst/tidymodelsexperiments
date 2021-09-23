@@ -1,0 +1,130 @@
+---
+title: 'Hello Models: Ames Housing Data'
+author: "[Jim Tyhurst, Ph.D.](https://www.jimtyhurst.com/)<br>"
+date: "`r Sys.Date()`"
+output:
+  github_document:
+    toc: true
+    hard_line_breaks: FALSE
+  html_document:
+    toc: true
+    code_folding: hide
+numbersections: true
+vignette: >
+  %\VignetteIndexEntry{Hello Models: Ames Housing Data}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  echo = TRUE
+)
+```
+
+## Introduction
+
+The goal of this analysis is to produce a _predictive model_ that predicts the `Sale_Price` of a house, based on other features provided in the data.
+
+This analysis is built from sample code in Kuhn and Silge ([Tidy Modeling with R](https://www.tmwr.org/ames.html). The [tidymodels](https://www.tidymodels.org/) framework is a collection of [packages](https://www.tidymodels.org/packages/) for modeling and machine learning using [tidyverse](https://www.tidyverse.org/) principles.
+
+_Coding style_: Most people do not bother to show the package associated with a function, but I find it easier to learn a new set of packages when each function call is prefixed with the package to which it belongs. For example, `rsample::initial_split`, rather than `initial_split`.
+
+## Exploring the data
+First, we load the data:
+
+```{r reads_data, message = FALSE}
+library(tidyverse)
+library(tidymodels)
+library(glmnet)
+library(modeldata)
+data(ames)
+
+dplyr::glimpse(ames)
+```
+
+This data covers five years from `r min(ames$Year_Sold)` to `r max(ames$Year_Sold)`:
+
+```{r year_sold_}
+ggplot(ames, aes(x = Year_Sold)) + 
+  geom_bar()
+```
+
+
+We want to predict the `Sale_Price`:
+
+```{r sales_price_histogram}
+ggplot(ames, aes(x = Sale_Price)) + 
+  geom_histogram(bins = 50)
+```
+
+We will use the `log` of the `Sales_Price`, so that errors in predicting expensive houses will not have an excessive influence on the model.
+
+```{r sales_price_transformed}
+ames_log <- ames %>% mutate(Sale_Price = log10(Sale_Price))
+ggplot(ames_log, aes(x = Sale_Price)) + 
+  geom_histogram(bins = 50) +
+  scale_x_log10()
+```
+
+## Splitting the data for training and testing
+
+Split the data into 80% for training and 20% for testing. A stratified random sample will conduct the 80/20 split within each quartile of the data and then pool the results together. This makes it more likely to get a good split of training and test cases, even for the smaller number of very high-priced homes. In {[rsample](https://rsample.tidymodels.org/)}, this is achieved using the `strata` argument with the name of a column:
+
+```{r split}
+# Initialize the random number stream, so that the results can be reproduced later. 
+set.seed(123)
+
+# Save the split information for an 80/20 split of the data
+ames_split <- rsample::initial_split(ames_log, prop = 0.80, strata = Sale_Price)
+ames_split
+```
+
+## Fitting a model
+
+We will use the [glmnet](https://cran.r-project.org/package=glmnet) package to build a linear regression model. The {[parsnip](https://parsnip.tidymodels.org/)} package provides functions for configuring and fitting a model.
+
+```{r glmnet}
+glm_fit <- parsnip::linear_reg(penalty = 1) %>%
+  parsnip::set_engine("glmnet") %>%
+  parsnip::fit_xy(
+    x = rsample::training(ames_split) %>% select(Longitude, Latitude),
+    y = rsample::training(ames_split) %>% pull(Sale_Price)
+  )
+```
+
+Use the `glm_fit` model to make predictions on the test dataset:
+
+```{r glm_predict}
+glm_predictions <- predict(
+  glm_fit, 
+  new_data = 
+    rsample::testing(ames_split) |> 
+    select(Longitude, Latitude)
+)
+glm_predictions
+```
+
+TODO: Something is wrong ... All of the predicted values are the same value!
+
+
+```{r min_prediction}
+min(glm_predictions$.pred)
+```
+
+
+```{r max_prediction}
+max(glm_predictions$.pred)
+```
+
+## Source code
+[Ames-Housing-Data.Rmd](./Ames-Housing-Data.Rmd)
+
+## References
+[Tidymodels](https://www.tidymodels.org/).
+
+[Tidyverse](https://www.tidyverse.org/).
+
+Max Kuhn and Julia Silge. 2021-09-08. [Tidy Modeling with R](https://www.tmwr.org/). Free, online book.
