@@ -17,8 +17,8 @@ The goal of this analysis is to produce a *predictive model* that
 predicts the `Sale_Price` of a house, based on other features provided
 in the data.
 
-This analysis is built from sample code in Kuhn and Silge ([Tidy
-Modeling with R](https://www.tmwr.org/ames.html). The
+This analysis is built from sample code in Kuhn and Silge (2021) “[Tidy
+Modeling with R](https://www.tmwr.org/ames.html)”. The
 [tidymodels](https://www.tidymodels.org/) framework is a collection of
 [packages](https://www.tidymodels.org/packages/) for modeling and
 machine learning using [tidyverse](https://www.tidyverse.org/)
@@ -174,28 +174,27 @@ ames_split
 ## Fitting a model
 
 We will use the [glmnet](https://cran.r-project.org/package=glmnet)
-package to build a linear regression model. The
+package to build a linear regression model based on the `Longitude` and
+`Latitude` of the house. The
 {[parsnip](https://parsnip.tidymodels.org/)} package provides functions
 for configuring and fitting a model.
 
 ``` r
+ames_training_data <- rsample::training(ames_split) |> select(Longitude, Latitude, Sale_Price)
+ames_testing_data <- rsample::testing(ames_split) |> select(Longitude, Latitude, Sale_Price)
+
 glm_fit <- parsnip::linear_reg(penalty = 1) %>%
   parsnip::set_engine("glmnet") %>%
   parsnip::fit_xy(
-    x = rsample::training(ames_split) %>% select(Longitude, Latitude),
-    y = rsample::training(ames_split) %>% pull(Sale_Price)
+    x = ames_training_data %>% select(Longitude, Latitude),
+    y = ames_training_data %>% pull(Sale_Price)
   )
 ```
 
 Use the `glm_fit` model to make predictions on the test dataset:
 
 ``` r
-glm_predictions <- predict(
-  glm_fit, 
-  new_data = 
-    rsample::testing(ames_split) |> 
-    select(Longitude, Latitude)
-)
+glm_predictions <- predict(glm_fit, new_data = ames_testing_data)
 glm_predictions
 #> # A tibble: 588 x 1
 #>    .pred
@@ -213,8 +212,8 @@ glm_predictions
 #> # … with 578 more rows
 ```
 
-TODO: Something is wrong … All of the predicted values are the same
-value!
+<span style="color:red">**TODO**</span>: Something is wrong … <span
+style="color:red">All of the predicted values are the same value!</span>
 
 ``` r
 min(glm_predictions$.pred)
